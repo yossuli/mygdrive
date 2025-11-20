@@ -1,0 +1,29 @@
+{
+  "name": "mygdrive",
+  "version": "0.1.0",
+  "packageManager": "pnpm@8.8.0",
+  "description": "Wrapper CLI for gdrive",
+  "main": "dist/cli.js",
+  "bin": {
+    "mygdrive": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/cli.js",
+    "dev": "ts-node src/cli.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "execa": "^7.1.1",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/node": "^20.5.1",
+    "ts-node": "^10.9.1"
+  }
+}
