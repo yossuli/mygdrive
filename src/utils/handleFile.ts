@@ -1,7 +1,7 @@
 import { Select } from "enquirer";
 import { confirm } from "./enquirer/confirm";
 
-import type { BrowseNode } from "../cli";
+import type { BrowseNode } from "../commands/browse";
 import { downloadFile } from "./downloadFile";
 import { showFileInfo } from "./showFileInfo";
 

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 // @ts-ignore
 import { Select } from "enquirer";
-import type { BrowseNode } from "../cli";
+import type { BrowseNode } from "../commands/browse";
 import { getInfo } from "./getInfo";
 import { getItems } from "./getItems";
 
