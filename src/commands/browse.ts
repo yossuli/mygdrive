@@ -1,7 +1,7 @@
-import { ensureFolderId } from "../utils/ensureFolderId";
-import { ensureGdrive } from "../utils/ensureGdrive";
-import { handleFile } from "../utils/handleFile";
-import { handleFolder } from "../utils/handleFolder";
+import { ensureFolderId } from "../utils/ensureFolderId.js";
+import { ensureGdrive } from "../utils/ensureGdrive.js";
+import { handleFile } from "../utils/handleFile.js";
+import { handleFolder } from "../utils/handleFolder.js";
 export type BrowseNode = { id: string; name: string };
 
 export const browse = async (folderId: any) => {
@@ -12,17 +12,17 @@ export const browse = async (folderId: any) => {
   let parents: BrowseNode[] = [];
 
   while (true) {
-    const result = await handleFolder(current, parents);
-    result.handleLoop;
-    if (result.handleLoop === "break") {
+    const handled = await handleFolder(current, parents);
+    handled.handleLoop;
+    if (handled.handleLoop === "break") {
       break;
     }
-    if (result.handleLoop === "continue") {
-      current = result.current;
-      parents = result.parents;
+    if (handled.handleLoop === "continue") {
+      current = handled.current;
+      parents = handled.parents;
       continue;
     }
-    const { id, name } = result;
+    const { id, name } = handled;
 
     await handleFile({ id, name });
   }

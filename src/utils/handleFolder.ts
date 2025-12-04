@@ -1,9 +1,9 @@
 import chalk from "chalk";
-// @ts-ignore
-import { Select } from "enquirer";
-import type { BrowseNode } from "../commands/browse";
-import { getInfo } from "./getInfo";
-import { getItems } from "./getItems";
+import type { BrowseNode } from "../commands/browse.js";
+import { getInfo, getItems } from "./gdrive/index.js";
+
+import pkg from "enquirer";
+const { Select } = pkg;
 
 interface Break {
   handleLoop: "break";
@@ -28,8 +28,19 @@ export const handleFolder = async (
   current: BrowseNode,
   parents: BrowseNode[],
 ): Promise<Return> => {
-  const items = await getItems(current.id);
-  const choices = items.map((it) => ({
+  const result = await getItems(current.id);
+
+  if (!result.success) {
+    console.error(
+      chalk.red(result.error.type),
+      result.error.message ?? result.error.err,
+    );
+    return { handleLoop: "break" };
+  }
+
+  const items = result.data;
+
+  const choices = items.map((it: any) => ({
     name: `${it.type.padEnd(6).slice(0, 6)} ${it.name}${chalk.hidden(it.id)}`,
     value: it,
   }));
@@ -64,11 +75,33 @@ export const handleFolder = async (
       const [upNode, ...rest] = parents;
 
       if (upNode) {
-        return { handleLoop: "continue", current: upNode, parents: rest };
+        return {
+          handleLoop: "continue",
+          current: upNode,
+          parents: rest,
+        };
       }
-      const { parents: parentIds } = await getInfo(current.id);
+      const result = await getInfo(current.id);
+      if (!result.success) {
+        console.error(
+          chalk.red(result.error.type),
+          result.error.message ?? result.error.err,
+        );
+        return { handleLoop: "break" };
+      }
+      const parentIds = result.data.parents;
 
-      const { id, name } = await getInfo(parentIds[0]);
+      const result2 = await getInfo(parentIds[0]);
+
+      if (!result2.success) {
+        console.error(
+          chalk.red(result2.error.type),
+          result2.error.message ?? result2.error.err,
+        );
+        return { handleLoop: "break" };
+      }
+
+      const { id, name } = result2.data;
 
       return {
         handleLoop: "continue",

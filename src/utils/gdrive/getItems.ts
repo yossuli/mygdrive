@@ -1,7 +1,17 @@
-import chalk from "chalk";
 import { execa } from "execa";
+import type { Item, Result } from "../../types/index.js";
+import { failure, success } from "../result/index.js";
 
-export async function getItems(parentId: string) {
+export async function getItems(parentId: string): Promise<Result<Item[]>> {
+  if (!parentId) {
+    return {
+      success: false,
+      error: {
+        type: "INVALID_PARENT_ID",
+        message: "Parent ID is required",
+      },
+    };
+  }
   try {
     const { stdout } = await execa("gdrive", [
       "files",
@@ -26,12 +36,8 @@ export async function getItems(parentId: string) {
       const created = cols[4] ?? "";
       return { id, name, type, size, created };
     });
-    return items;
+    return success(items);
   } catch (err: any) {
-    console.error(
-      chalk.red("gdrive files list failed:"),
-      err?.stderr ?? err?.message ?? String(err),
-    );
-    throw new Error("failed to get items");
+    return failure("GDRIVE_LIST_ERROR", err?.stderr ?? err?.message, err);
   }
 }

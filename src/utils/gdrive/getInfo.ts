@@ -1,27 +1,11 @@
-import chalk from "chalk";
 import { execa } from "execa";
-
-const INFO_KNOWN_KEYS = [
-  "id",
-  "name",
-  "mime",
-  "mimeType",
-  "created",
-  "modified",
-  "shared",
-  "parents",
-  "viewUrl",
-  "webViewLink",
-] as const;
-
-type INFO_KNOWN_KEYS_TYPE = (typeof INFO_KNOWN_KEYS)[number];
-type Info<T extends string = INFO_KNOWN_KEYS_TYPE> = {
-  [K in T]: K extends "shared"
-    ? boolean
-    : K extends "parents"
-      ? string[]
-      : string;
-};
+import {
+  INFO_KNOWN_KEYS,
+  type INFO_KNOWN_KEYS_TYPE,
+  type Info,
+  type Result,
+} from "../../types/index.js";
+import { failure, success } from "../result/index.js";
 
 const isKnownKey = (key: string): key is INFO_KNOWN_KEYS_TYPE => {
   return (INFO_KNOWN_KEYS as readonly string[]).includes(key);
@@ -48,16 +32,12 @@ const buildInfoField = (acc: Info, line: string) => {
   return { ...acc, [key]: val };
 };
 
-export async function getInfo(id: string) {
+export async function getInfo(id: string): Promise<Result<Info>> {
   try {
     const { stdout } = await execa("gdrive", ["files", "info", id]);
 
-    return stdout.split(/\r?\n/).reduce(buildInfoField, {} as Info);
+    return success(stdout.split(/\r?\n/).reduce(buildInfoField, {} as Info));
   } catch (err: any) {
-    console.error(
-      chalk.red("failed to get info:"),
-      err?.stderr ?? err?.message ?? String(err),
-    );
-    throw new Error("failed to get info");
+    return failure("GDRIVE_GET_INFO_ERROR", err?.stderr ?? err?.message, err);
   }
 }

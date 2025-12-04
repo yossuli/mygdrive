@@ -1,23 +1,22 @@
 import chalk from "chalk";
-import { getInfo } from "./getInfo";
+import { getInfo } from "./gdrive/index.js";
 
 export const showFileInfo = async (id: string) => {
-  try {
-    const fileInfo = await getInfo(id);
-    if (fileInfo) {
-      console.info(chalk.blue("File Info:"));
-      for (const [key, val] of Object.entries(fileInfo)) {
-        console.info(`${chalk.yellow(key)}: ${val}`);
-      }
-      return;
-    }
-    console.error(chalk.red("Failed to get file info."));
-    return;
-  } catch (err: any) {
+  const fileInfo = await getInfo(id);
+  if (!fileInfo.success) {
     console.error(
-      chalk.red("Failed to get file info:"),
-      err?.message ?? String(err),
+      chalk.red(fileInfo.error.type),
+      fileInfo.error.message ?? fileInfo.error.err,
     );
     return;
   }
+  if (fileInfo.data) {
+    console.info(chalk.blue("File Info:"));
+    for (const [key, val] of Object.entries(fileInfo.data)) {
+      console.info(`${chalk.yellow(key)}: ${val}`);
+    }
+    return;
+  }
+  console.error(chalk.red("Failed to get file info."));
+  return;
 };

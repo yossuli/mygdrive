@@ -1,9 +1,10 @@
-import { Select } from "enquirer";
-import { confirm } from "./enquirer/confirm";
+import type { BrowseNode } from "../commands/browse.js";
+import { confirm } from "./enquirer/confirm.js";
+import { downloadFile } from "./gdrive/index.js";
+import { showFileInfo } from "./showFileInfo.js";
 
-import type { BrowseNode } from "../commands/browse";
-import { downloadFile } from "./downloadFile";
-import { showFileInfo } from "./showFileInfo";
+import pkg from "enquirer";
+const { Select } = pkg;
 
 const download = { name: "Download" };
 const info = { name: "Info" };
