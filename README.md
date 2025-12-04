@@ -28,8 +28,6 @@ mygdrive <command>
 
 ## 例
 
-- ファイル一覧: `mygdrive list`
-- ファイルアップロード: `mygdrive upload ./path/to/file`
-- ファイルダウンロード: `mygdrive download <fileId> ./out`
+- TUI ブラウズ: `mygdrive browse` （フォルダを移動してファイルを選択・ダウンロードできます）
 
 詳細は `mygdrive --help` を参照してください。
