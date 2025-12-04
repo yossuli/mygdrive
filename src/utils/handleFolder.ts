@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import type { BrowseNode } from "../commands/browse.js";
-import { getInfo, getItems } from "./gdrive/index.js";
+import { getInfo, getItems } from "../services/gdrive/index.js";
 
 import pkg from "enquirer";
 const { Select } = pkg;
@@ -33,7 +33,7 @@ export const handleFolder = async (
   if (!result.success) {
     console.error(
       chalk.red(result.error.type),
-      result.error.message ?? result.error.err,
+      result.error.message ?? result.error.originalError,
     );
     return { handleLoop: "break" };
   }
@@ -85,7 +85,7 @@ export const handleFolder = async (
       if (!result.success) {
         console.error(
           chalk.red(result.error.type),
-          result.error.message ?? result.error.err,
+          result.error.message ?? result.error.originalError,
         );
         return { handleLoop: "break" };
       }
@@ -96,7 +96,7 @@ export const handleFolder = async (
       if (!result2.success) {
         console.error(
           chalk.red(result2.error.type),
-          result2.error.message ?? result2.error.err,
+          result2.error.message ?? result2.error.originalError,
         );
         return { handleLoop: "break" };
       }

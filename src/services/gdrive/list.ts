@@ -1,13 +1,15 @@
 import { execa } from "execa";
-import type { Item, Result } from "../../types/index.js";
-import { failure, success } from "../result/index.js";
+import type { GdriveItem, Result } from "../../types/index.js";
+import { failure, success } from "../../utils/index.js";
 
-export async function getItems(parentId: string): Promise<Result<Item[]>> {
+export async function getItems(
+  parentId: string,
+): Promise<Result<GdriveItem[]>> {
   if (!parentId) {
     return {
       success: false,
       error: {
-        type: "INVALID_PARENT_ID",
+        type: "INVALID_ID",
         message: "Parent ID is required",
       },
     };
@@ -34,10 +36,14 @@ export async function getItems(parentId: string): Promise<Result<Item[]>> {
       const type = cols[2] ?? "";
       const size = cols[3] ?? "";
       const created = cols[4] ?? "";
-      return { id, name, type, size, created };
+      return { id, name, type: type as "file" | "folder", size, created };
     });
     return success(items);
   } catch (err: any) {
-    return failure("GDRIVE_LIST_ERROR", err?.stderr ?? err?.message, err);
+    return failure({
+      type: "GDRIVE_COMMAND_FAILED",
+      message: err?.stderr ?? err?.message,
+      originalError: err,
+    });
   }
 }

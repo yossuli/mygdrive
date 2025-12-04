@@ -1,6 +1,6 @@
 import type { BrowseNode } from "../commands/browse.js";
+import { downloadFile } from "../services/gdrive/index.js";
 import { confirm } from "./enquirer/confirm.js";
-import { downloadFile } from "./gdrive/index.js";
 import { showFileInfo } from "./showFileInfo.js";
 
 import pkg from "enquirer";
@@ -24,7 +24,7 @@ export const handleFile = async ({ id, name }: BrowseNode) => {
         message: `Are you sure you want to download "${name}" (${id})?`,
       };
       const isDownloadConfirmed = await confirm(options, async () => {
-        await downloadFile(id, name);
+        await downloadFile(id);
         return true;
       });
       if (isDownloadConfirmed) {

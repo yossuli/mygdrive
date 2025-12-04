@@ -1,7 +1,6 @@
 import { Command } from "commander";
 import { render } from "ink";
-import { browse } from "./commands/browse.js";
-import App from "./commands/reactBrowse.js";
+import App from "./components/pages/DriveBrowserPage.js";
 
 const pkg = { version: "0.1.0" };
 const program = new Command();
@@ -12,12 +11,7 @@ program
 
 program
   .command("browse [folderId]")
-  .description("Browse Drive in a simple TUI and download files")
-  .action(browse);
-
-program
-  .command("react-browse [folderId]")
-  .description("Browse Drive in a TUI (React Ink) and download files")
+  .description("Browse Drive in a TUI and download files")
   .action(async (folderId: string | undefined) => {
     render(<App initialFolderId={folderId} />);
   });

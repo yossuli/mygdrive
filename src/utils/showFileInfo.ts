@@ -1,12 +1,12 @@
 import chalk from "chalk";
-import { getInfo } from "./gdrive/index.js";
+import { getInfo } from "../services/gdrive/index.js";
 
 export const showFileInfo = async (id: string) => {
   const fileInfo = await getInfo(id);
   if (!fileInfo.success) {
     console.error(
       chalk.red(fileInfo.error.type),
-      fileInfo.error.message ?? fileInfo.error.err,
+      fileInfo.error.message ?? fileInfo.error.originalError,
     );
     return;
   }
