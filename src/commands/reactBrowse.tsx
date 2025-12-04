@@ -1,8 +1,8 @@
 import { Box, Text, useApp, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import Spinner from "ink-spinner";
-import { useEffect, useState } from "react";
-import type { Failed, Info } from "../types/index.js";
+import { useCallback, useEffect, useState } from "react";
+import type { Failed, Info, Item } from "../types/index.js";
 import { ensureGdrive } from "../utils/ensureGdrive.js";
 import { downloadFile, getInfo } from "../utils/gdrive/index.js";
 import { getItems } from "../utils/gdrive/index.js";
@@ -83,13 +83,38 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   // ★ 追加: 詳細情報表示用ステート
   const [detailedInfo, setDetailedInfo] = useState<Info | null>(null);
 
-  const handleBack = () => {
+  const generateListItem = useCallback((item: Item | undefined) => {
+    if (!item) {
+      return [];
+    }
+    const isFolder = /folder/i.test(item.type);
+    return [
+      {
+        label: isFolder ? `📁 ${item.name}` : `📄 ${item.name}`,
+        value: { id: item.id, original: item, isFolder: isFolder },
+      },
+    ];
+  }, []);
+
+  const handleBack = async () => {
     const newHistory = [...history];
     const parent = newHistory.pop();
     if (parent) {
       setHistory(newHistory);
       setCurrentId(parent.id);
+      return;
     }
+    // ルートの場合はgetInfoで親を取得
+    const result = await getInfo(currentId);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    const parentIds = result.data.parents;
+    if (parentIds.length === 0) {
+      return;
+    }
+    setCurrentId(parentIds[0]);
   };
 
   const handleItem = (item: ListItem) => {
@@ -156,6 +181,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
       if (isMounted) {
         setFolderName(info.data.name);
         setItems(resItem.data);
+        setHighlightedItem(generateListItem(resItem.data?.[0])[0]);
       }
       setLoading(false);
     };
@@ -163,7 +189,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
     return () => {
       isMounted = false;
     };
-  }, [currentId]);
+  }, [currentId, generateListItem]);
 
   // --- Actions ---
 
@@ -224,21 +250,13 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
 
   // --- Rendering Helpers ---
 
-  const fileListItems: ListItem[] = [];
-  if (history.length > 0) {
-    fileListItems.push({
+  const fileListItems: ListItem[] = [
+    {
       label: ".. (up)",
       value: { id: "BACK", original: null, isFolder: true, isBack: true },
-    });
-  }
-  items.forEach((it) => {
-    const isFolder = /folder/i.test(it.type);
-    const icon = isFolder ? "📁" : "📄";
-    fileListItems.push({
-      label: `${icon} ${it.name}`,
-      value: { id: it.id, original: it, isFolder: isFolder },
-    });
-  });
+    },
+    ...items.flatMap(generateListItem),
+  ];
 
   const actionItems = [
     { label: "🔙 Back", value: "back" },
@@ -247,16 +265,34 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   ];
 
   // 詳細情報の行コンポーネント
-  const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <Box>
-      <Box width={15}>
-        <Text color="cyan">{label}:</Text>
+  const InfoRow = ({
+    label,
+    value,
+  }: { label: string; value: string | boolean | string[] }) => {
+    const toPascalCase = (str: string) => {
+      const [first, ...rest] = str.split("");
+      return `${first.toUpperCase() + rest.join("")}`;
+    };
+
+    const v =
+      typeof value === "boolean"
+        ? value
+          ? "Yes"
+          : "No"
+        : Array.isArray(value)
+          ? value.join(", ")
+          : toPascalCase(value);
+    return (
+      <Box>
+        <Box width={15}>
+          <Text color="cyan">{label}:</Text>
+        </Box>
+        <Box flexGrow={1}>
+          <Text>{v}</Text>
+        </Box>
       </Box>
-      <Box flexGrow={1}>
-        <Text>{value}</Text>
-      </Box>
-    </Box>
-  );
+    );
+  };
 
   // --- View ---
 
@@ -339,20 +375,14 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
             flexDirection="column"
             padding={1}
           >
-            <Text bold underline>
-              File Details
-            </Text>
-
-            <InfoRow label="Name" value={detailedInfo.name} />
-            <InfoRow label="ID" value={detailedInfo.id} />
-            <InfoRow label="Type" value={detailedInfo.mime} />
-            <InfoRow label="Size" value={detailedInfo.size || "-"} />
-            <InfoRow label="Created" value={detailedInfo.created} />
-            <InfoRow label="Modified" value={detailedInfo.modified} />
-            <InfoRow
-              label="Shared"
-              value={detailedInfo.shared ? "Yes" : "No"}
-            />
+            <Box marginBottom={1}>
+              <Text bold underline>
+                File Details
+              </Text>
+            </Box>
+            {Object.entries(detailedInfo).map(([key, val]) => (
+              <InfoRow key={key} label={key} value={val} />
+            ))}
 
             <Box marginTop={1}>
               <SelectInput
