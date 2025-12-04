@@ -1,6 +1,7 @@
 import { Box, Text, useApp, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import Spinner from "ink-spinner";
+import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import type { Failed, Info, Item } from "../types/index.js";
 import { ensureGdrive } from "../utils/ensureGdrive.js";
@@ -11,6 +12,18 @@ type ListItem = {
   label: string;
   value: { id: string; original: any; isFolder: boolean; isBack?: boolean };
 };
+
+const Loading = (
+  props: React.PropsWithChildren<{ color: "green" | "yellow" }>,
+) => (
+  <>
+    <Text color={props.color}>
+      <Spinner type="dots" />
+    </Text>
+    <Text> </Text>
+    <Text color="gray"> {props.children ?? "Loading..."}</Text>
+  </>
+);
 
 // 履歴をツリー状に表示するコンポーネント
 const HistoryTree = ({
@@ -38,11 +51,7 @@ const HistoryTree = ({
           return (
             <Text key={node.id}>
               <Text color="gray">{indent}</Text>
-              <Text color="green">
-                <Spinner type="dots" />
-              </Text>
-              <Text> </Text>
-              <Text color="gray"> Loading...</Text>
+              <Loading color="green" />
             </Text>
           );
         }
@@ -326,12 +335,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
             Browsing:
             <Text> </Text>
             {loading ? (
-              <Text>
-                <Text color="green">
-                  <Spinner type="dots" />
-                </Text>
-                Loading...
-              </Text>
+              <Loading color="green" />
             ) : (
               <>
                 <Text color="green" bold>
@@ -349,23 +353,13 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
       <Box flexDirection="column" minHeight={10}>
         {loading ? (
           <Box borderStyle="single" borderColor="yellow">
-            <Text>
-              <Text color="green">
-                <Spinner type="dots" />
-              </Text>
-              <Text> </Text>
-              Loading...
-            </Text>
+            <Loading color="green" />
           </Box>
         ) : processing ? (
           <Box borderStyle="double" borderColor="yellow" padding={1}>
-            <Text>
-              <Text color="yellow">
-                <Spinner type="dots" />
-              </Text>
-              <Text> </Text>
+            <Loading color="yellow">
               Processing {activeFile?.value.original.name}...
-            </Text>
+            </Loading>
           </Box>
         ) : detailedInfo ? (
           // ★ 追加: 詳細情報表示ビュー
