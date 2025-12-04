@@ -12,38 +12,6 @@ program
   .description("Wrapper for gdrive CLI")
   .version(pkg.version);
 
-interface Break {
-  handleLoop: "break";
-}
-interface Continue {
-  handleLoop: "continue";
-  current: BrowseNode;
-  parents: BrowseNode[];
-}
-
-const browse = async (
-  current: BrowseNode,
-  parents: BrowseNode[],
-): Promise<Break | Continue> => {
-  const result = await handleFolder(current, parents);
-  result.handleLoop;
-  if (result.handleLoop === "break") {
-    return { handleLoop: "break" };
-  }
-  if (result.handleLoop === "continue") {
-    return result;
-  }
-  const { id, name } = result;
-
-  await handleFile({ id, name });
-
-  return {
-    handleLoop: "continue",
-    current,
-    parents,
-  };
-};
-
 program
   .command("browse [folderId]")
   .description("Browse Drive in a simple TUI and download files")
@@ -55,12 +23,19 @@ program
     let parents: BrowseNode[] = [];
 
     while (true) {
-      const result = await browse(current, parents);
+      const result = await handleFolder(current, parents);
+      result.handleLoop;
       if (result.handleLoop === "break") {
         break;
       }
-      current = result.current;
-      parents = result.parents;
+      if (result.handleLoop === "continue") {
+        current = result.current;
+        parents = result.parents;
+        continue;
+      }
+      const { id, name } = result;
+
+      await handleFile({ id, name });
     }
   });
 
