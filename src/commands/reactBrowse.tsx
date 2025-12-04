@@ -2,7 +2,7 @@ import { Box, Text, useApp, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import Spinner from "ink-spinner";
 import { useEffect, useState } from "react";
-import type { Info } from "../types/index.js";
+import type { Failed, Info } from "../types/index.js";
 import { ensureGdrive } from "../utils/ensureGdrive.js";
 import { downloadFile, getInfo } from "../utils/gdrive/index.js";
 import { getItems } from "../utils/gdrive/index.js";
@@ -10,6 +10,54 @@ import { getItems } from "../utils/gdrive/index.js";
 type ListItem = {
   label: string;
   value: { id: string; original: any; isFolder: boolean; isBack?: boolean };
+};
+
+// 履歴をツリー状に表示するコンポーネント
+const HistoryTree = ({
+  history,
+  currentName,
+  loading,
+}: {
+  history: { id: string; name: string }[];
+  currentName: string;
+  loading: boolean;
+}) => {
+  const nodes = [...history, { name: currentName, id: "current" }];
+  const deepestIndex = nodes.length - 1;
+
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      {nodes.map((node, index) => {
+        const isCurrent = index === nodes.length - 1;
+
+        const indent = [...Array(index || 1).fill("  "), "└─ "]
+          .slice(1, index + 1)
+          .join("");
+
+        if (loading && deepestIndex === index) {
+          return (
+            <Text key={node.id}>
+              <Text color="gray">{indent}</Text>
+              <Text color="green">
+                <Spinner type="dots" />
+              </Text>
+              <Text> </Text>
+              <Text color="gray"> Loading...</Text>
+            </Text>
+          );
+        }
+        return (
+          <Box key={node.id}>
+            <Text color="gray">{indent}</Text>
+            <Text color={isCurrent ? "green" : "gray"} bold={isCurrent}>
+              {isCurrent ? "📂 " : "📁 "}
+              {node.name}
+            </Text>
+          </Box>
+        );
+      })}
+    </Box>
+  );
 };
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
@@ -24,8 +72,9 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
 
   // --- State: UI制御 ---
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Failed["error"] | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [highlightedItem, setHighlightedItem] = useState<ListItem | null>(null);
 
   // --- State: アクションモーダル ---
   const [activeFile, setActiveFile] = useState<ListItem | null>(null);
@@ -34,11 +83,43 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   // ★ 追加: 詳細情報表示用ステート
   const [detailedInfo, setDetailedInfo] = useState<Info | null>(null);
 
+  const handleBack = () => {
+    const newHistory = [...history];
+    const parent = newHistory.pop();
+    if (parent) {
+      setHistory(newHistory);
+      setCurrentId(parent.id);
+    }
+  };
+
+  const handleItem = (item: ListItem) => {
+    if (item.value.isBack) {
+      return;
+    }
+
+    if (item.value.isFolder) {
+      setHistory([...history, { id: currentId, name: folderName }]);
+      setCurrentId(item.value.id);
+    } else {
+      setActiveFile(item);
+      setStatusMessage(null);
+    }
+  };
+
   // グローバルショートカット ('q')
-  useInput((input) => {
+  useInput((input, key) => {
     // 処理中や詳細表示中は誤操作防止のため終了しない
-    if (!(processing || detailedInfo) && input === "q") {
+    if (processing || detailedInfo) {
+      return;
+    }
+    if (input === "q") {
       exit();
+    }
+    if (key.leftArrow) {
+      handleBack();
+    }
+    if (key.rightArrow && highlightedItem) {
+      handleItem(highlightedItem);
     }
   });
 
@@ -46,6 +127,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
+      await ensureGdrive();
       setLoading(true);
       setError(null);
       setStatusMessage(null);
@@ -54,20 +136,19 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
       setActiveFile(null);
       setDetailedInfo(null);
 
-      await ensureGdrive();
       // 並列で取得して高速化
       const [info, resItem] = await Promise.all([
         getInfo(currentId),
         getItems(currentId),
       ]);
       if (!info.success) {
-        setError(info.error.message || "Failed to fetch folder info");
+        setError(info.error);
         setLoading(false);
         return;
       }
 
       if (!resItem.success) {
-        setError(resItem.error.message || "Failed to fetch items");
+        setError(resItem.error);
         setLoading(false);
         return;
       }
@@ -88,22 +169,11 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
 
   const handleItemSelect = (item: ListItem) => {
     if (item.value.isBack) {
-      const newHistory = [...history];
-      const parent = newHistory.pop();
-      if (parent) {
-        setHistory(newHistory);
-        setCurrentId(parent.id);
-      }
+      handleBack();
       return;
     }
 
-    if (item.value.isFolder) {
-      setHistory([...history, { id: currentId, name: folderName }]);
-      setCurrentId(item.value.id);
-    } else {
-      setActiveFile(item);
-      setStatusMessage(null);
-    }
+    handleItem(item);
   };
 
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: <explanation>
@@ -121,7 +191,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
       setProcessing(true);
       const result = await downloadFile(activeFile.value.id);
       if (!result.success) {
-        setError(`Download failed: ${result.error.message || "Unknown error"}`);
+        setError(result.error);
         setProcessing(false);
         return;
       }
@@ -138,9 +208,7 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
       const result = await getInfo(activeFile.value.id);
       if (!result.success) {
         setProcessing(false);
-        setError(
-          `Failed to get info: ${result.error.message || "Unknown error"}`,
-        );
+        setError(result.error);
         return;
       }
       const fullInfo = result.data;
@@ -173,9 +241,9 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   });
 
   const actionItems = [
+    { label: "🔙 Back", value: "back" },
     { label: "⬇️  Download", value: "download" },
     { label: "ℹ️  Info", value: "info" },
-    { label: "🔙 Back", value: "back" },
   ];
 
   // 詳細情報の行コンポーネント
@@ -193,43 +261,73 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
   // --- View ---
 
   if (error) {
-    return <Text color="red">Error: {error}</Text>;
+    return (
+      <Box padding={1} borderStyle="round" borderColor="red">
+        <Text color="red">Error: {error.type}</Text>
+        {error.message && <Text>{error.message}</Text>}
+        {error.err && <Text>{error.err}</Text>}
+      </Box>
+    );
   }
 
   return (
     <Box flexDirection="column">
-      <Box borderStyle="round" borderColor="cyan" paddingX={1} marginBottom={1}>
-        {history.map((h, idx) => (
-          <Text key={h.id}>
-            {h.name}
-            {idx < history.length - 1 && <Text color="gray"> / </Text>}
+      <Box
+        borderStyle="round"
+        borderColor="cyan"
+        padding={1}
+        marginBottom={1}
+        flexDirection="column"
+      >
+        <HistoryTree
+          history={history}
+          currentName={folderName}
+          loading={loading}
+        />
+
+        <Box flexDirection="column">
+          <Text>
+            Browsing:
+            <Text> </Text>
+            {loading ? (
+              <Text>
+                <Text color="green">
+                  <Spinner type="dots" />
+                </Text>
+                Loading...
+              </Text>
+            ) : (
+              <>
+                <Text color="green" bold>
+                  {folderName}
+                </Text>
+                <Text> </Text>
+                <Text color="gray">({currentId})</Text>
+              </>
+            )}
           </Text>
-        ))}
-        {history.length > 0 && <Text color="gray"> / </Text>}
-        <Text>
-          Browsing:
-          <Text color="green" bold>
-            {folderName}
-          </Text>
-          <Text color="gray">({currentId})</Text>
-        </Text>
+        </Box>
       </Box>
 
       {/* Main Area */}
       <Box flexDirection="column" minHeight={10}>
         {loading ? (
-          <Text>
-            <Text color="green">
-              <Spinner type="dots" />
+          <Box borderStyle="single" borderColor="yellow">
+            <Text>
+              <Text color="green">
+                <Spinner type="dots" />
+              </Text>
+              <Text> </Text>
+              Loading...
             </Text>
-            Loading...
-          </Text>
+          </Box>
         ) : processing ? (
           <Box borderStyle="double" borderColor="yellow" padding={1}>
             <Text>
               <Text color="yellow">
-                <Spinner type="arc" />
+                <Spinner type="dots" />
               </Text>
+              <Text> </Text>
               Processing {activeFile?.value.original.name}...
             </Text>
           </Box>
@@ -238,8 +336,8 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
           <Box
             borderStyle="double"
             borderColor="blue"
-            padding={1}
             flexDirection="column"
+            padding={1}
           >
             <Text bold underline>
               File Details
@@ -268,8 +366,8 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
           <Box
             borderStyle="double"
             borderColor="green"
-            padding={1}
             flexDirection="column"
+            padding={1}
           >
             <Text bold underline>
               Selected: {activeFile.value.original.name}
@@ -279,14 +377,17 @@ const App = ({ initialFolderId }: { initialFolderId?: string }) => {
           </Box>
         ) : (
           // ファイルリスト
-          <SelectInput
-            items={fileListItems.map((item) => ({
-              ...item,
-              key: item.value.id,
-            }))}
-            onSelect={handleItemSelect}
-            limit={10}
-          />
+          <Box padding={1} borderStyle="single" borderColor="green">
+            <SelectInput
+              items={fileListItems.map((item) => ({
+                ...item,
+                key: item.value.id,
+              }))}
+              onSelect={handleItemSelect}
+              onHighlight={setHighlightedItem}
+              limit={10}
+            />
+          </Box>
         )}
       </Box>
 

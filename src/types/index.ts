@@ -1,13 +1,13 @@
-export type Result<T> =
-  | { success: true; data: T }
-  | {
-      success: false;
-      error: {
-        type: string;
-        message?: string;
-        err?: any;
-      };
-    };
+export type Failed = {
+  success: false;
+  error: {
+    type: string;
+    message?: string;
+    err?: any;
+  };
+};
+
+export type Result<T = never> = { success: true; data: T } | Failed;
 
 export type Item = {
   id: string;
