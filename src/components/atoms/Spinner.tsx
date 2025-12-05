@@ -1,6 +1,6 @@
-import React from "react";
 import { Box, Text } from "ink";
 import InkSpinner from "ink-spinner";
+import type React from "react";
 
 export const Spinner = (
   props: React.PropsWithChildren<{ color?: "green" | "yellow" }>,

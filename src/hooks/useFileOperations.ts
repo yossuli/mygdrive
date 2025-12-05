@@ -2,7 +2,7 @@ import { useState } from "react";
 import { downloadFile, getInfo } from "../services/gdrive/index.js";
 import type { AppError, GdriveInfo, GdriveItem } from "../types/index.js";
 
-export type ListItem = {
+export interface ListItem {
   label: string;
   value: {
     id: string;
@@ -10,7 +10,7 @@ export type ListItem = {
     isFolder: boolean;
     isBack?: boolean;
   };
-};
+}
 
 export const useFileOperations = () => {
   const [activeFile, setActiveFile] = useState<ListItem | null>(null);
@@ -68,12 +68,15 @@ export const useFileOperations = () => {
     setDetailedInfo(null);
   };
 
+  const isBusy = processing || detailedInfo !== null;
+
   return {
     activeFile,
     processing,
     detailedInfo,
     statusMessage,
     error,
+    isBusy,
     selectFile,
     clearFileSelection,
     downloadActiveFile,
