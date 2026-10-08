@@ -1,5 +1,4 @@
-import { type Key, useInput } from "ink";
-import { useState } from "react";
+import { useInput } from "ink";
 import type { ListItem, useFileOperations } from "./useFileOperations.js";
 import type { useGdriveBrowse } from "./useGdriveBrowse.js";
 
@@ -14,13 +13,10 @@ export const useUserAction = ({
   operations,
   exit,
 }: UseUserActionProps) => {
-  const [highlightedItem, setHighlightedItem] = useState<ListItem | null>(null);
-
   const handleItemSelect = (item: ListItem | null) => {
     if (!item) {
       return;
     }
-    setHighlightedItem(null);
     if (item.value.isBack) {
       browser.goToParent();
       return;
@@ -46,47 +42,26 @@ export const useUserAction = ({
     }
   };
 
-  const isGoToParentWithLeftArrow =
-    highlightedItem?.value.isFolder || highlightedItem?.value.isBack;
-
-  const keyInputHandler = (input: string, key: Key) => {
-    if (key.leftArrow) {
-      return "leftArrow";
+  const handleListBack = () => {
+    operations.clearFileSelection();
+    const isGoToParent = !operations.activeFile;
+    if (isGoToParent) {
+      browser.goToParent();
     }
-    if (key.rightArrow) {
-      return "rightArrow";
-    }
-
-    return input;
   };
 
-  useInput((input, key) => {
+  useInput((input, _key) => {
     if (operations.isBusy) {
       return;
     }
-    switch (keyInputHandler(input, key)) {
-      case "q": {
-        exit();
-        break;
-      }
-      case "leftArrow": {
-        operations.clearFileSelection();
-        if (isGoToParentWithLeftArrow) {
-          browser.goToParent();
-        }
-        break;
-      }
-      case "rightArrow": {
-        handleItemSelect(highlightedItem);
-        break;
-      }
+    if (input === "q") {
+      exit();
     }
   });
 
   return {
-    highlightedItem,
-    setHighlightedItem,
     handleItemSelect,
     handleActionSelect,
+    handleListBack,
   };
 };

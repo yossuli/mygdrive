@@ -13,7 +13,7 @@ export const BrowsingStatus = ({
   loading,
   currentId,
 }: BrowsingStatusProps) => (
-  <Box flexDirection="column">
+  <Box flexDirection="row">
     <Text>Browsing: </Text>
     {loading ? (
       <Spinner color="green">Loading...</Spinner>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getInfo, getItems } from "../services/gdrive/index.js";
-import type { AppError, GdriveItem } from "../types/index.js";
+import type { AppError, GdriveItem, Result } from "../types/index.js";
+import { success } from "../utils/index.js";
 import type { ListItem } from "./useFileOperations.js";
 
 export type HistoryEntry = {
@@ -8,7 +9,38 @@ export type HistoryEntry = {
   name: string;
 };
 
-export const useGdriveBrowse = (initialFolderId = "root") => {
+type FolderContent = {
+  name: string;
+  items: GdriveItem[];
+};
+
+const fetchFolderContent = async (
+  folderId: string,
+): Promise<Result<FolderContent>> => {
+  if (folderId === "starred") {
+    const resItem = await getItems("starred");
+    if (!resItem.success) {
+      return resItem;
+    }
+    return success({ name: "スター付き", items: resItem.data });
+  }
+
+  const [info, resItem] = await Promise.all([
+    getInfo(folderId),
+    getItems(folderId),
+  ]);
+
+  if (!info.success) {
+    return info;
+  }
+  if (!resItem.success) {
+    return resItem;
+  }
+
+  return success({ name: info.data.name, items: resItem.data });
+};
+
+export const useGdriveBrowse = (initialFolderId = "starred") => {
   const [currentId, setCurrentId] = useState<string>(initialFolderId);
   const [folderName, setFolderName] = useState<string>("Loading...");
   const [items, setItems] = useState<GdriveItem[]>([]);
@@ -39,28 +71,17 @@ export const useGdriveBrowse = (initialFolderId = "root") => {
       setLoading(true);
       setError(null);
 
-      const [info, resItem] = await Promise.all([
-        getInfo(currentId),
-        getItems(currentId),
-      ]);
-
+      const result = await fetchFolderContent(currentId);
       if (!isMounted) {
         return;
       }
 
-      if (!info.success) {
-        setError(info.error);
-        setLoading(false);
-        return;
+      if (result.success) {
+        setFolderName(result.data.name);
+        setItems(result.data.items);
+      } else {
+        setError(result.error);
       }
-      if (!resItem.success) {
-        setError(resItem.error);
-        setLoading(false);
-        return;
-      }
-
-      setFolderName(info.data.name);
-      setItems(resItem.data);
       setLoading(false);
     };
     fetchData();
@@ -75,6 +96,10 @@ export const useGdriveBrowse = (initialFolderId = "root") => {
     if (parent) {
       setHistory(newHistory);
       setCurrentId(parent.id);
+      return;
+    }
+
+    if (currentId === "starred") {
       return;
     }
 

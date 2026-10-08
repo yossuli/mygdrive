@@ -28,7 +28,7 @@ export const InfoItem = ({
         <StyledText variant="primary">{label}:</StyledText>
       </Box>
       <Box flexGrow={1}>
-        <StyledText>{formattedValue}</StyledText>
+        <StyledText variant="secondary">{formattedValue}</StyledText>
       </Box>
     </Box>
   );

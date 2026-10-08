@@ -28,22 +28,6 @@ const ProcessingView = ({ fileName }: { fileName?: string }) => (
   </Box>
 );
 
-const backItem: ListItem = {
-  label: ".. (up)",
-  value: {
-    id: "BACK",
-    original: {
-      id: "BACK",
-      name: ".. (up)",
-      type: "folder",
-      size: "",
-      created: "",
-    },
-    isFolder: true,
-    isBack: true,
-  },
-};
-
 export const DriveBrowserPage = ({
   initialFolderId,
 }: { initialFolderId?: string }) => {
@@ -53,7 +37,7 @@ export const DriveBrowserPage = ({
   const operations = useFileOperations();
 
   // --- Input & Action Handling ---
-  const { setHighlightedItem, handleItemSelect, handleActionSelect } =
+  const { handleItemSelect, handleActionSelect, handleListBack } =
     useUserAction({
       browser,
       operations,
@@ -61,10 +45,9 @@ export const DriveBrowserPage = ({
     });
 
   // --- Data for Rendering ---
-  const fileListItems: ListItem[] = [
-    backItem,
-    ...browser.items.flatMap(browser.generateListItem),
-  ];
+  const fileListItems: ListItem[] = browser.items.flatMap(
+    browser.generateListItem,
+  );
 
   // --- Rendering ---
   const error = browser.error || operations.error;
@@ -119,7 +102,7 @@ export const DriveBrowserPage = ({
             <FileList
               items={fileListItems}
               onSelect={handleItemSelect}
-              onHighlight={setHighlightedItem}
+              onBack={handleListBack}
             />
           </Default>
         </Switch>

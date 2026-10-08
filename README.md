@@ -28,6 +28,6 @@ mygdrive <command>
 
 ## 例
 
-- TUI ブラウズ: `mygdrive browse` （フォルダを移動してファイルを選択・ダウンロードできます）
+- TUI ブラウズ: `mygdrive browse` （デフォルトでスター付きから開始。特定のフォルダから開始する場合は `mygdrive browse <folderId>`、ルートから開始する場合は `mygdrive browse root`）
 
 詳細は `mygdrive --help` を参照してください。

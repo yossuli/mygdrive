@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
 import App from "./components/pages/DriveBrowserPage.js";
@@ -12,8 +13,12 @@ program
 program
   .command("browse [folderId]")
   .description("Browse Drive in a TUI and download files")
-  .action(async (folderId: string | undefined) => {
-    render(<App initialFolderId={folderId} />);
-  });
+  .option("-s, --starred", "Start browsing from starred files")
+  .action(
+    async (folderId: string | undefined, options: { starred?: boolean }) => {
+      const targetFolderId = options.starred ? "starred" : folderId;
+      render(<App initialFolderId={targetFolderId} />);
+    },
+  );
 
 program.parse(process.argv);

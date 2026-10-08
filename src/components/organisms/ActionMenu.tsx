@@ -1,4 +1,4 @@
-import { Box, Text } from "ink";
+import { Box, Text, useInput } from "ink";
 import SelectInput from "ink-select-input";
 import type { ListItem } from "../../hooks/useFileOperations.js";
 import { Icon, type IconType } from "../atoms/Icon.js";
@@ -31,6 +31,12 @@ const ItemComponent = ({ label, isSelected, icon }: any) => {
 };
 
 export const ActionMenu = ({ activeFile, onSelect }: ActionMenuProps) => {
+  useInput((_input, key) => {
+    if (key.leftArrow) {
+      onSelect({ value: "back" });
+    }
+  });
+
   return (
     <Box
       borderStyle="double"

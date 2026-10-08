@@ -1,5 +1,6 @@
-import { Box } from "ink";
+import { Box, useInput } from "ink";
 import SelectInput from "ink-select-input";
+import { useState } from "react";
 import type { ListItem } from "../../hooks/useFileOperations.js";
 import type { IconType } from "../atoms/Icon.js";
 import { FileRow } from "../molecules/FileRow.js";
@@ -7,7 +8,7 @@ import { FileRow } from "../molecules/FileRow.js";
 type FileListProps = {
   items: ListItem[];
   onSelect: (item: ListItem) => void;
-  onHighlight: (item: ListItem) => void;
+  onBack: () => void;
 };
 
 const ItemComponent = ({ value, isSelected }: any) => {
@@ -30,16 +31,49 @@ const ItemComponent = ({ value, isSelected }: any) => {
   return <FileRow item={item} isSelected={!!isSelected} iconType={iconType} />;
 };
 
-export const FileList = ({ items, onSelect, onHighlight }: FileListProps) => {
+const backItem: ListItem = {
+  label: ".. (up)",
+  value: {
+    id: "BACK",
+    original: {
+      id: "BACK",
+      name: ".. (up)",
+      type: "folder",
+      size: "",
+      created: "",
+    },
+    isFolder: true,
+    isBack: true,
+  },
+};
+
+export const FileList = ({ items, onSelect, onBack }: FileListProps) => {
+  const displayItems = [backItem, ...items];
+  const [highlightedItem, setHighlightedItem] = useState<ListItem | null>(
+    displayItems[0] ?? null,
+  );
+
+  useInput((_input, key) => {
+    if (highlightedItem === null) {
+      return;
+    }
+    if (key.rightArrow && !highlightedItem.value.isBack) {
+      onSelect(highlightedItem);
+    }
+    if (key.leftArrow) {
+      onBack();
+    }
+  });
+
   return (
     <Box padding={1} borderStyle="single" borderColor="green">
       <SelectInput
-        items={items.map((item) => ({
+        items={displayItems.map((item) => ({
           ...item,
           key: item.value.id,
         }))}
         onSelect={onSelect}
-        onHighlight={onHighlight}
+        onHighlight={setHighlightedItem}
         itemComponent={ItemComponent}
         limit={10}
       />

@@ -15,12 +15,11 @@ export async function getItems(
     };
   }
   try {
-    const { stdout } = await execa("gdrive", [
-      "files",
-      "list",
-      "--parent",
-      parentId,
-    ]);
+    const args =
+      parentId === "starred"
+        ? ["files", "list", "--query", "starred = true and trashed = false"]
+        : ["files", "list", "--parent", parentId];
+    const { stdout } = await execa("gdrive", args);
     const lines = stdout
       .split(/\r?\n/)
       .map((l) => l.trim())
@@ -46,4 +45,8 @@ export async function getItems(
       originalError: err,
     });
   }
+}
+
+export async function getStarredItems(): Promise<Result<GdriveItem[]>> {
+  return getItems("starred");
 }
